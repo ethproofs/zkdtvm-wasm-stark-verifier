@@ -2,10 +2,15 @@
   "name": "dt-wasm-verifier",
   "version": "0.1.0",
   "private": true,
-  "description": "Pre-built WASM verifier for compressed zkDTVM proofs (ethproofs integration)",
+  "description": "WASM build of dt-stark-verifier compressed STARK check",
   "type": "module",
   "scripts": {
-    "demo": "node serve.mjs",
-    "verify:node": "node verify-node.mjs"
+    "wasm:bundler": "PATH=\"$PWD/node_modules/.bin:$PATH\" wasm-pack build . --target bundler --out-dir pkg --release",
+    "wasm:web": "PATH=\"$PWD/node_modules/.bin:$PATH\" wasm-pack build . --target web --out-dir pkg-web --release",
+    "wasm:node": "PATH=\"$PWD/node_modules/.bin:$PATH\" wasm-pack build . --target nodejs --out-dir pkg-node --release",
+    "wasm:all": "npm run wasm:bundler && npm run wasm:web && npm run wasm:node",
+    "demo": "node scripts/serve.mjs",
+    "test:node": "node scripts/verify_node.mjs",
+    "test:node:build": "npm run wasm:node && node scripts/verify_node.mjs"
   }
 }

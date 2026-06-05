@@ -1,5 +1,5 @@
-node_modules/
-.DS_Store
-target/
-change.md
-
+/target
+/pkg
+/pkg-web
+/pkg-node
+node_modules
