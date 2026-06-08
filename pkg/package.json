@@ -1,0 +1,19 @@
+{
+  "name": "@ethproofs/zkdtvm-wasm-stark-verifier",
+  "type": "module",
+  "description": "WebAssembly bindings for the zkDTVM STARK verifier",
+  "version": "0.1.2",
+  "license": "MIT OR Apache-2.0",
+  "files": [
+    "dt_wasm_verifier_bg.wasm",
+    "dt_wasm_verifier_bg.js",
+    "dt_wasm_verifier_bg.wasm.d.ts",
+    "zkdtvm_wasm_stark_verifier.js",
+    "zkdtvm_wasm_stark_verifier.d.ts"
+  ],
+  "main": "zkdtvm_wasm_stark_verifier.js",
+  "types": "zkdtvm_wasm_stark_verifier.d.ts",
+  "sideEffects": [
+    "./snippets/*"
+  ]
+}
