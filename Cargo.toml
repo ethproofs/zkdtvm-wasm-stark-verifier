@@ -10,9 +10,9 @@ publish = false
 crate-type = ["cdylib", "rlib"]
 
 [dependencies]
-# Open-source verifier backend. Adapted to zkdtvm v0.6.2.
+# Open-source verifier backend. Adapted to zkdtvm v0.6.3.
 # Repo: https://github.com/AntChainOpenLabs/zkdtvm-stark-verifier
-zkdtvm-stark-verifier = { git = "https://github.com/AntChainOpenLabs/zkdtvm-stark-verifier.git", tag = "v0.6.2", default-features = true }
+zkdtvm-stark-verifier = { git = "https://github.com/AntChainOpenLabs/zkdtvm-stark-verifier.git", tag = "v0.6.3", default-features = true }
 wasm-bindgen = "0.2.100"
 console_error_panic_hook = "0.1.7"
 

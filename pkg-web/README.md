@@ -10,10 +10,10 @@ If you only want to **use** the pre-built WASM (Node / browser integration, demo
 
 | Component        | Version / Source                                                                                   |
 | ---------------- | -------------------------------------------------------------------------------------------------- |
-| zkdtvm           | **v0.6.2** (prover is not yet open-source)                                                         |
-| Verifier backend | [`zkdtvm-stark-verifier`](https://github.com/AntChainOpenLabs/zkdtvm-stark-verifier) `v0.6.2` tag |
+| zkdtvm           | **v0.6.3** (prover is not yet open-source)                                                         |
+| Verifier backend | [`zkdtvm-stark-verifier`](https://github.com/AntChainOpenLabs/zkdtvm-stark-verifier) `v0.6.3` tag |
 
-> `zkdtvm_vks/v0.6.2/vk.bin` is the **official verifying-key digest bin**
+> `zkdtvm_vks/v0.6.3/vk.bin` is the **official verifying-key digest bin**
 > for the current `ethproofs` release — it is bound to both the zkdtvm
 > version and the Ant Eth client version pinned above. The file is a
 > 32-byte bincode-serialized `[u32; 8]` Poseidon2 digest of the verifying
@@ -28,7 +28,7 @@ Each row pins both the **zkdtvm release** (the proving side) and the **Ant Eth c
 
 | Tag / Branch | zkdtvm | Ant Eth client | Backend                                           |
 | ------------ | ------ | -------------- | ------------------------------------------------- |
-| *(current)*  | v0.6.2 | v0.6.2         | `zkdtvm-stark-verifier` open-source repo, `v0.6.2` tag |
+| *(current)*  | v0.6.3 | v0.6.3         | `zkdtvm-stark-verifier` open-source repo, `v0.6.3` tag |
 
 ---
 
@@ -117,7 +117,7 @@ Downstream flow (integration, fixtures, demo wiring, CI templates) lives on `eth
 
 ## Generating production `compressed_proof.bin` / `compressed_vk.bin`
 
-The sample pair under `web/samples/` is a regenerable artifact. To produce real proofs for zkdtvm v0.6.2, use the zkdtvm prover pipeline (not yet open-source) and export `proof` / `vk` as raw serialized bytes using the same layout described in [Byte layout](#byte-layout). The `vk` bytes must be the 32-byte **hash digest of the verifying key**, not the full verifying key.
+The sample pair under `web/samples/` is a regenerable artifact. To produce real proofs for zkdtvm v0.6.3, use the zkdtvm prover pipeline (not yet open-source) and export `proof` / `vk` as raw serialized bytes using the same layout described in [Byte layout](#byte-layout). The `vk` bytes must be the 32-byte **hash digest of the verifying key**, not the full verifying key.
 
 Refer to the zkdtvm SDK documentation for full prover setup.
 
