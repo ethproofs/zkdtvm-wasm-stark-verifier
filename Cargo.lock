@@ -216,7 +216,7 @@ dependencies = [
 [[package]]
 name = "dt-basefold"
 version = "0.1.0"
-source = "git+https://github.com/AntChainOpenLabs/zkdtvm-stark-verifier.git?tag=v0.6.3#0920af08156bd66636c13e80a06b7b59acb1eb47"
+source = "git+https://github.com/AntChainOpenLabs/zkdtvm-stark-verifier.git?tag=v0.6.3#a9ad9b9fceccf8852245fab2da038d6fa5ef6001"
 dependencies = [
  "bincode",
  "dt-p3-baby-bear",
@@ -243,7 +243,7 @@ dependencies = [
 [[package]]
 name = "dt-derive"
 version = "0.1.0"
-source = "git+https://github.com/AntChainOpenLabs/zkdtvm-stark-verifier.git?tag=v0.6.3#0920af08156bd66636c13e80a06b7b59acb1eb47"
+source = "git+https://github.com/AntChainOpenLabs/zkdtvm-stark-verifier.git?tag=v0.6.3#a9ad9b9fceccf8852245fab2da038d6fa5ef6001"
 dependencies = [
  "quote",
  "syn 1.0.109",
@@ -489,7 +489,7 @@ dependencies = [
 [[package]]
 name = "dt-primitives"
 version = "0.1.0"
-source = "git+https://github.com/AntChainOpenLabs/zkdtvm-stark-verifier.git?tag=v0.6.3#0920af08156bd66636c13e80a06b7b59acb1eb47"
+source = "git+https://github.com/AntChainOpenLabs/zkdtvm-stark-verifier.git?tag=v0.6.3#a9ad9b9fceccf8852245fab2da038d6fa5ef6001"
 dependencies = [
  "bincode",
  "blake3",
@@ -509,7 +509,7 @@ dependencies = [
 [[package]]
 name = "dt-recursion"
 version = "0.1.0"
-source = "git+https://github.com/AntChainOpenLabs/zkdtvm-stark-verifier.git?tag=v0.6.3#0920af08156bd66636c13e80a06b7b59acb1eb47"
+source = "git+https://github.com/AntChainOpenLabs/zkdtvm-stark-verifier.git?tag=v0.6.3#a9ad9b9fceccf8852245fab2da038d6fa5ef6001"
 dependencies = [
  "backtrace",
  "cfg-if",
@@ -550,7 +550,7 @@ dependencies = [
 [[package]]
 name = "dt-stark"
 version = "0.1.0"
-source = "git+https://github.com/AntChainOpenLabs/zkdtvm-stark-verifier.git?tag=v0.6.3#0920af08156bd66636c13e80a06b7b59acb1eb47"
+source = "git+https://github.com/AntChainOpenLabs/zkdtvm-stark-verifier.git?tag=v0.6.3#a9ad9b9fceccf8852245fab2da038d6fa5ef6001"
 dependencies = [
  "arrayref",
  "dt-basefold",
@@ -1435,7 +1435,7 @@ dependencies = [
 [[package]]
 name = "zkdtvm-stark-verifier"
 version = "0.1.0"
-source = "git+https://github.com/AntChainOpenLabs/zkdtvm-stark-verifier.git?tag=v0.6.3#0920af08156bd66636c13e80a06b7b59acb1eb47"
+source = "git+https://github.com/AntChainOpenLabs/zkdtvm-stark-verifier.git?tag=v0.6.3#a9ad9b9fceccf8852245fab2da038d6fa5ef6001"
 dependencies = [
  "anyhow",
  "bincode",

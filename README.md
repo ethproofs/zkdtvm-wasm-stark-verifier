@@ -101,7 +101,7 @@ npm run demo
 # open http://127.0.0.1:8788/
 ```
 
-The UI loads `pkg-web/` once per tab and runs `verifyCompressedBytes` inside a worker. Use **Load sample (Fibonacci)** to pull `web/samples/`, or drop your own `compressed_proof.bin` / `compressed_vk.bin`.
+The UI loads `pkg-web/` once per tab and runs `verifyCompressedBytes` inside a worker. Use **Load sample** to pull `web/samples/`, or drop your own `compressed_proof.bin` / `compressed_vk.bin`.
 
 ---
 
