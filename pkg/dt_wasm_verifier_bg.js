@@ -1,10 +1,12 @@
-
-let imports = {};
-imports['__wbindgen_placeholder__'] = module.exports;
 let wasm;
-const { TextDecoder, TextEncoder } = require(`util`);
+export function __wbg_set_wasm(val) {
+    wasm = val;
+}
 
-let cachedTextDecoder = new TextDecoder('utf-8', { ignoreBOM: true, fatal: true });
+
+const lTextDecoder = typeof TextDecoder === 'undefined' ? (0, module.require)('util').TextDecoder : TextDecoder;
+
+let cachedTextDecoder = new lTextDecoder('utf-8', { ignoreBOM: true, fatal: true });
 
 cachedTextDecoder.decode();
 
@@ -24,7 +26,9 @@ function getStringFromWasm0(ptr, len) {
 
 let WASM_VECTOR_LEN = 0;
 
-let cachedTextEncoder = new TextEncoder('utf-8');
+const lTextEncoder = typeof TextEncoder === 'undefined' ? (0, module.require)('util').TextEncoder : TextEncoder;
+
+let cachedTextEncoder = new lTextEncoder('utf-8');
 
 const encodeString = (typeof cachedTextEncoder.encodeInto === 'function'
     ? function (arg, view) {
@@ -87,9 +91,9 @@ function getDataViewMemory0() {
     return cachedDataViewMemory0;
 }
 
-module.exports.initVerifierRuntime = function() {
+export function initVerifierRuntime() {
     wasm.initVerifierRuntime();
-};
+}
 
 function passArray8ToWasm0(arg, malloc) {
     const ptr = malloc(arg.length * 1, 1) >>> 0;
@@ -107,7 +111,7 @@ function takeFromExternrefTable0(idx) {
  * @param {Uint8Array} proof_bytes
  * @param {Uint8Array} vk_bytes
  */
-module.exports.verifyCompressedBytes = function(proof_bytes, vk_bytes) {
+export function verifyCompressedBytes(proof_bytes, vk_bytes) {
     const ptr0 = passArray8ToWasm0(proof_bytes, wasm.__wbindgen_malloc);
     const len0 = WASM_VECTOR_LEN;
     const ptr1 = passArray8ToWasm0(vk_bytes, wasm.__wbindgen_malloc);
@@ -116,23 +120,23 @@ module.exports.verifyCompressedBytes = function(proof_bytes, vk_bytes) {
     if (ret[1]) {
         throw takeFromExternrefTable0(ret[0]);
     }
-};
+}
 
 /**
  * @param {Uint8Array} proof_bytes
  * @param {Uint8Array} vk_bytes
  * @returns {boolean}
  */
-module.exports.verifyCompressedOk = function(proof_bytes, vk_bytes) {
+export function verifyCompressedOk(proof_bytes, vk_bytes) {
     const ptr0 = passArray8ToWasm0(proof_bytes, wasm.__wbindgen_malloc);
     const len0 = WASM_VECTOR_LEN;
     const ptr1 = passArray8ToWasm0(vk_bytes, wasm.__wbindgen_malloc);
     const len1 = WASM_VECTOR_LEN;
     const ret = wasm.verifyCompressedOk(ptr0, len0, ptr1, len1);
     return ret !== 0;
-};
+}
 
-module.exports.__wbg_error_7534b8e9a36f1ab4 = function(arg0, arg1) {
+export function __wbg_error_7534b8e9a36f1ab4(arg0, arg1) {
     let deferred0_0;
     let deferred0_1;
     try {
@@ -144,12 +148,12 @@ module.exports.__wbg_error_7534b8e9a36f1ab4 = function(arg0, arg1) {
     }
 };
 
-module.exports.__wbg_new_8a6f238a6ece86ea = function() {
+export function __wbg_new_8a6f238a6ece86ea() {
     const ret = new Error();
     return ret;
 };
 
-module.exports.__wbg_stack_0ed75d68575b0f3c = function(arg0, arg1) {
+export function __wbg_stack_0ed75d68575b0f3c(arg0, arg1) {
     const ret = arg1.stack;
     const ptr1 = passStringToWasm0(ret, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
     const len1 = WASM_VECTOR_LEN;
@@ -157,7 +161,7 @@ module.exports.__wbg_stack_0ed75d68575b0f3c = function(arg0, arg1) {
     getDataViewMemory0().setInt32(arg0 + 4 * 0, ptr1, true);
 };
 
-module.exports.__wbindgen_init_externref_table = function() {
+export function __wbindgen_init_externref_table() {
     const table = wasm.__wbindgen_export_3;
     const offset = table.grow(4);
     table.set(0, undefined);
@@ -168,22 +172,12 @@ module.exports.__wbindgen_init_externref_table = function() {
     ;
 };
 
-module.exports.__wbindgen_string_new = function(arg0, arg1) {
+export function __wbindgen_string_new(arg0, arg1) {
     const ret = getStringFromWasm0(arg0, arg1);
     return ret;
 };
 
-module.exports.__wbindgen_throw = function(arg0, arg1) {
+export function __wbindgen_throw(arg0, arg1) {
     throw new Error(getStringFromWasm0(arg0, arg1));
 };
-
-const path = require('path').join(__dirname, 'dt_wasm_verifier_bg.wasm');
-const bytes = require('fs').readFileSync(path);
-
-const wasmModule = new WebAssembly.Module(bytes);
-const wasmInstance = new WebAssembly.Instance(wasmModule, imports);
-wasm = wasmInstance.exports;
-module.exports.__wasm = wasm;
-
-wasm.__wbindgen_start();
 
