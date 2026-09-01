@@ -1,14 +1,15 @@
 {
   "name": "dt-wasm-verifier",
   "type": "module",
-  "description": "WASM bindings for zkdtvm compressed proof verification (zkdtvm-stark-verifier)",
-  "version": "0.8.0",
-  "license": "Apache-2.0",
-  "repository": "https://github.com/AntChainOpenLabs/zkdtvm-wasm-stark-verifier",
+  "description": "WASM bindings for zkDTVM compressed proof verification (dt-stark-verifier)",
+  "version": "0.2.0",
+  "license": "MIT OR Apache-2.0",
   "files": [
     "dt_wasm_verifier_bg.wasm",
     "dt_wasm_verifier.js",
-    "dt_wasm_verifier.d.ts"
+    "dt_wasm_verifier.d.ts",
+    "zkdtvm_wasm_stark_verifier.js",
+    "zkdtvm_wasm_stark_verifier.d.ts"
   ],
   "main": "dt_wasm_verifier.js",
   "types": "dt_wasm_verifier.d.ts",

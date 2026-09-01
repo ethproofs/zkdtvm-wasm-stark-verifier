@@ -1,123 +1,84 @@
-# zkdtvm-wasm-stark-verifier
+# zkDTVM Wasm Stark Verifier
 
-Source-build recipe for the WASM bindings of **`zkdtvm-stark-verifier::verify_compressed_bytes`**. Running `wasm-pack` against this crate produces the checked-in `pkg-node/` and `pkg-web/` release artifacts.
+WebAssembly bindings for the zkDTVM STARK verifier.
 
-Consumers can use the checked-in pre-built WASM packages without installing the Rust toolchain.
+## Overview
 
----
+This module provides WebAssembly bindings for the zkDTVM STARK verifier, enabling proof verification to run directly in both web browsers and Node.js environments.
 
-## Version matrix
+| Component        | Version |
+| ---------------- | ------- |
+| zkdtvm           | v0.8.0  |
+| Verifier backend | [`zkdtvm-stark-verifier`](https://github.com/AntChainOpenLabs/zkdtvm-stark-verifier) `v0.8.0` tag |
 
-| Component        | Version / Source |
-| ---------------- | ---------------- |
-| zkdtvm           | **v0.8.0** (the prover is not yet open-source) |
-| Verifier backend | [`zkdtvm-stark-verifier`](https://github.com/AntChainOpenLabs/zkdtvm-stark-verifier), `v0.8.0` tag |
+> **Breaking change in 0.2.0.** The verification key input is now the **full**
+> bincode-serialized `DTVerifyingKey` (2368 bytes), not the 32-byte digest used
+> by 0.1.x. Native-recursion verification requires the complete key, so
+> digest-only input is rejected. See [Byte format](#byte-format).
 
-> `zkdtvm_vks/v0.8.0/vk-full.bin` is the full bincode-serialized
-> `DTVerifyingKey` required by the current v0.8.0 proof fixture.
-> `zkdtvm_vks/v0.8.0/vk.bin` is retained as the corresponding 32-byte
-> digest artifact, but it is not sufficient for native-recursion verification.
+> **Also note:** v0.8.0 performs full native-recursion verification. The module
+> grew from ~1.4 MB to ~15 MB, and a single verification takes ~19 s in Chrome
+> and ~45 s under Node 20 (M-series Mac), versus ~165 ms on 0.1.x. Run
+> `verify_stark` in a worker so it does not block the UI thread.
 
-### History
+## Usage
 
-Each row pins both the zkdtvm proving-side release and the verifier backend. A bump on either side invalidates artifacts produced by this recipe:
-
-- A **zkdtvm** version change invalidates the built `pkg-node/` / `pkg-web/` WASM artifacts and the verifying-key files under `zkdtvm_vks/`.
-- A **program verifying key** change invalidates the corresponding files under `zkdtvm_vks/`.
-
-| Tag | zkdtvm | Backend |
-| --- | ------ | ------- |
-| `v0.8.0` | v0.8.0 | `zkdtvm-stark-verifier` v0.8.0 tag |
-
----
-
-## Prerequisites
-
-- **Rust** with the `wasm32-unknown-unknown` target installed.
-- **Node.js** ≥ 18 (for the demo server and the Node smoke test).
-- **`wasm-pack`** and **`wasm-opt`** on `PATH` if you want to rebuild the WASM packages from source. For example: `cargo install wasm-pack --version 0.15.0` and `brew install binaryen`.
-- Network access to the public `zkdtvm-stark-verifier` GitHub repository and crates.io during `cargo` / `wasm-pack` builds. Plonky3 is resolved through exact `dt-p3-*` version `0.8.0` crates.io packages.
-
----
-
-## Build
+### Installation
 
 ```bash
-npm run wasm:node    # output: pkg-node/  (Node.js target, default smoke test)
-npm run wasm:web     # output: pkg-web/   (browser target, for the web demo)
+npm install @ethproofs/zkdtvm-wasm-stark-verifier
 ```
 
-Artifact layout under each `pkg-*/`:
+### React Integration
 
+```typescript
+import init, { main, verify_stark } from '@ethproofs/zkdtvm-wasm-stark-verifier';
+
+await init(); // Initialize WASM (if needed)
+main(); // Initialize panic hook
+
+// Verify a proof
+const isValid = verify_stark(proofBytes, vkBytes);
 ```
-dt_wasm_verifier.js         # JS glue
-dt_wasm_verifier_bg.wasm    # compiled WASM (current pre-built artifact is ~15 MiB)
-dt_wasm_verifier.d.ts       # TypeScript defs
-package.json                # npm package metadata
+
+### Node.js Usage
+
+```javascript
+const { main, verify_stark } = require('@ethproofs/zkdtvm-wasm-stark-verifier');
+
+// The Node.js version initializes automatically
+
+main(); // Initialize panic hook
+const result = verify_stark(proofBytes, vkBytes);
 ```
 
-The release profile in `Cargo.toml` favours **runtime speed** (`opt-level = 3`, `lto = true`) over minimal `.wasm` size.
+### Byte format
 
----
+- **`proof`** — `bincode::serialize(compressed_proof)`, a `DTReduceProof<RootSC>`.
+- **`vk`** — `bincode::serialize(vk)`, the full `DTVerifyingKey` struct.
 
-## Exported JS API
+## Testing
 
-| Function                           | Signature                                   | Description                                                  |
-| ---------------------------------- | ------------------------------------------- | ------------------------------------------------------------ |
-| `init()` *(web only)*              | `() → Promise<void>`                        | Load & compile WASM. Node auto-loads.                        |
-| `initVerifierRuntime()`            | `() → void`                                 | Install panic hook. Call once before verifying.              |
-| `verifyCompressedBytes(proof, vk)` | `(Uint8Array, Uint8Array) → void`           | Verify; **throws** on failure. v0.8.0 proofs use the full verifying key. |
-| `verifyCompressedOk(proof, vk)`    | `(Uint8Array, Uint8Array) → boolean`        | Verify; returns `true` on success, `false` otherwise.        |
-
-### Byte layout
-
-- `proof` — bincode-serialized `DTReduceProof<RootSC>` bytes.
-- `vk`    — bincode-serialized full `DTVerifyingKey`. Digest-only input is rejected because native-recursion verification requires the complete key.
-
-This matches `zkdtvm_stark_verifier::verify_compressed_bytes` one-to-one.
-
----
-
-## Smoke test (post-build sanity check)
+### Node.js Example
 
 ```bash
 npm run test:node
-# → OK <ms>
 ```
 
-Defaults to `web/samples/compressed_proof.bin` + `web/samples/compressed_vk.bin` (a checked-in sample pair matching the current backend). To verify an arbitrary pair:
+This runs the Node.js example that loads proof and verification key files from the filesystem and verifies them.
 
-```bash
-node scripts/verify_node.mjs /path/to/proof.bin /path/to/vk.bin
-```
-
----
-
-## Web demo
+### Browser Example
 
 ```bash
 npm run demo
-# open http://127.0.0.1:8788/
 ```
 
-The UI loads `pkg-web/` once per tab and runs `verifyCompressedBytes` inside a worker. Use **Load sample** to pull `web/samples/`, or drop your own `compressed_proof.bin` / `compressed_vk.bin`.
+This starts a local HTTP server with a browser example that demonstrates:
 
----
+- Loading the WASM module in a browser environment
+- File upload interface for proof and verification key files
+- Interactive STARK proof verification
+- Performance metrics and detailed logging
+- Error handling and user feedback
 
-## Release tag
-
-The `v0.8.0` tag contains both the Rust build recipe and the generated `pkg-node/` / `pkg-web/` artifacts. Its backend and exact crates.io package versions are pinned by `Cargo.lock`.
-
----
-
-## Generating production `compressed_proof.bin` / `compressed_vk.bin`
-
-The sample pair under `web/samples/` is compatible with zkdtvm v0.8.0 and the `zkdtvm-stark-verifier` v0.8.0 backend. To produce real proofs, use the zkdtvm prover pipeline and export the `RootSC` proof and full `DTVerifyingKey` as raw bincode-serialized bytes using the layout described in [Byte layout](#byte-layout). The zkdtvm prover is not yet open-source.
-
-Refer to the zkdtvm SDK documentation for full prover setup.
-
----
-
-## License
-
-This project is licensed under the [Apache License 2.0](https://www.apache.org/licenses/LICENSE-2.0). See [LICENSE](./LICENSE) for the full license text.
+**Note:** The browser example requires files to be served over HTTP due to WASM CORS restrictions. The included server script handles this automatically.

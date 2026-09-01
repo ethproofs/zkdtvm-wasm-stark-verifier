@@ -1,0 +1,8 @@
+[
+  {
+    "name": "example_1",
+    "description": "Compressed STARK proof (valid)",
+    "proof": "/fixtures/example_1/proof.bin",
+    "vk": "/fixtures/example_1/vk.bin"
+  }
+]
