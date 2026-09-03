@@ -1,5 +1,8 @@
 export function initVerifierRuntime() {
-    wasm.initVerifierRuntime();
+    const ret = wasm.initVerifierRuntime();
+    if (ret[1]) {
+        throw takeFromExternrefTable0(ret[0]);
+    }
 }
 
 /**

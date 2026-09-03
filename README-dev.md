@@ -2,7 +2,15 @@
 
 Pre-built WASM verifier for **compressed zkDTVM proofs**. No Rust toolchain required — just Node.js.
 
-Built against **zkdtvm v0.8.0** / [`zkdtvm-stark-verifier`](https://github.com/AntChainOpenLabs/zkdtvm-stark-verifier) `v0.8.0` tag.
+Built against **zkdtvm v0.8.0** / [`zkdtvm-stark-verifier`](https://github.com/AntChainOpenLabs/zkdtvm-stark-verifier) `v0.8.0` tag,
+which currently resolves to commit `6bb8a737bdc5473332b980820921c090211069c7`.
+
+> **The `v0.8.0` tag is mutable and has already moved once.** It previously
+> resolved to `c5da37f5d187616c9ffe445e2e29e1f4d21c612d`; upstream retagged it
+> to `6bb8a73` to ship the reusable elided L4 verifier. `main`'s `Cargo.toml`
+> selects the backend by tag, so only `Cargo.lock` pins the exact commit —
+> always build with the committed lock, and re-verify fixtures after any
+> `cargo update`.
 
 ---
 
@@ -51,14 +59,19 @@ verifyCompressedBytes(proof, vk);  // throws on failure
 | Function | Signature | Description |
 |----------|-----------|-------------|
 | `init()` | `() → Promise<void>` | Load & compile WASM. **Browser only** (Node auto-loads). |
-| `initVerifierRuntime()` | `() → void` | Install panic hook. Call once before verifying. |
+| `initVerifierRuntime()` | `() → void` | Install panic hook **and run the one-time L4 setup (~3.7 s)**. Call once per worker before verifying. **Throws** if setup fails. |
 | `verifyCompressedBytes(proof, vk)` | `(Uint8Array, Uint8Array) → void` | Verify proof. **Throws** on failure. |
 | `verifyCompressedOk(proof, vk)` | `(Uint8Array, Uint8Array) → boolean` | Verify proof. Returns `true` if valid, `false` otherwise. |
 
 ### Byte format
 
-- **`compressed_proof.bin`** — `bincode::serialize(compressed_proof)`, a `DTReduceProof<RootSC>`.
-- **`compressed_vk.bin`** — `bincode::serialize(vk)`, the **full `DTVerifyingKey` struct**.
+- **`compressed_proof.bin`** — `bincode::serialize(compressed_proof)`, a `DTReduceProof<RootSC>`, in the **elided** form.
+- **`compressed_vk.bin`** — `bincode::serialize(vk)`, the **full `DTVerifyingKey` struct** (the program/core VK).
+
+> **Changed in the retagged v0.8.0 backend.** The verifier now accepts only the
+> compact **elided** proof form. The fixed L4 machine, program and VK are
+> embedded in the WASM package and are no longer API inputs; a proof that still
+> carries the L4 preprocessing opening is rejected even when otherwise valid.
 
 > **Changed in v0.8.0.** Earlier releases (v0.6.x) took the 32-byte VK **digest**
 > here. v0.8.0 requires the complete key — native-recursion verification cannot
@@ -82,22 +95,24 @@ Running 1 fixture(s):
 [example_1]
   proof fixtures/example_1/proof.bin (254530 bytes)
   vk    fixtures/example_1/vk.bin (2368 bytes)
-  OK 44479.60 ms
+  OK 42.96 ms
 
 ```
 
-> **Verification is far slower in v0.8.0.** The v0.6.x backend verified its
-> fixture in roughly 165 ms. v0.8.0 performs full native-recursion verification,
-> which costs tens of seconds. Measured on an M-series Mac with this fixture:
+> **The cost moved from verify to init.** The retagged v0.8.0 backend embeds the
+> fixed L4 verifier and reuses it, so `initVerifierRuntime()` pays a one-time
+> setup and each verification is cheap. Measured on an M-series Mac with this
+> fixture:
 >
-> | Runtime | Time |
-> | ------- | ---- |
-> | Chrome (worker, `pkg-web/`) | ~19.3 s |
-> | Node 20 (`pkg-node/`) | ~44.5 s |
+> | Runtime | One-time init | Verify (first) | Verify (subsequent) |
+> | ------- | ------------- | -------------- | ------------------- |
+> | Chrome (worker, `pkg-web/`) | ~3.7 s | ~47 ms | ~47 ms |
+> | Node 20 (`pkg-node/`) | ~3.7 s | ~43 ms | ~13 ms |
 >
-> Budget for this. In the browser, always run `verifyCompressedBytes` inside a
-> worker (as `demo/` does) so the UI thread stays responsive. Note the `.wasm`
-> also grew from ~1.4 MB to ~15 MB, so cache it aggressively.
+> The previous build verified this fixture in ~19.3 s (Chrome) / ~44.5 s
+> (Node 20). In the browser, still run this inside a worker (as `demo/` does):
+> the per-call cost is now small, but `initVerifierRuntime()` blocks for
+> seconds. The `.wasm` shrank from ~15 MB to ~3.2 MB; keep caching it.
 
 Or verify a specific proof/vk pair:
 
