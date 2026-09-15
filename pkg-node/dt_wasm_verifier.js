@@ -13,11 +13,7 @@ exports.initVerifierRuntime = initVerifierRuntime;
  * @param {Uint8Array} vk_bytes
  */
 function verifyCompressedBytes(proof_bytes, vk_bytes) {
-    const ptr0 = passArray8ToWasm0(proof_bytes, wasm.__wbindgen_malloc);
-    const len0 = WASM_VECTOR_LEN;
-    const ptr1 = passArray8ToWasm0(vk_bytes, wasm.__wbindgen_malloc);
-    const len1 = WASM_VECTOR_LEN;
-    const ret = wasm.verifyCompressedBytes(ptr0, len0, ptr1, len1);
+    const ret = wasm.verifyCompressedBytes(proof_bytes, vk_bytes);
     if (ret[1]) {
         throw takeFromExternrefTable0(ret[0]);
     }
@@ -30,11 +26,7 @@ exports.verifyCompressedBytes = verifyCompressedBytes;
  * @returns {boolean}
  */
 function verifyCompressedOk(proof_bytes, vk_bytes) {
-    const ptr0 = passArray8ToWasm0(proof_bytes, wasm.__wbindgen_malloc);
-    const len0 = WASM_VECTOR_LEN;
-    const ptr1 = passArray8ToWasm0(vk_bytes, wasm.__wbindgen_malloc);
-    const len1 = WASM_VECTOR_LEN;
-    const ret = wasm.verifyCompressedOk(ptr0, len0, ptr1, len1);
+    const ret = wasm.verifyCompressedOk(proof_bytes, vk_bytes);
     return ret !== 0;
 }
 exports.verifyCompressedOk = verifyCompressedOk;
@@ -55,9 +47,16 @@ function __wbg_get_imports() {
                 wasm.__wbindgen_free(deferred0_0, deferred0_1, 1);
             }
         },
+        __wbg_length_36bd29c6848c2144: function(arg0) {
+            const ret = arg0.length;
+            return ret;
+        },
         __wbg_new_227d7c05414eb861: function() {
             const ret = new Error();
             return ret;
+        },
+        __wbg_prototypesetcall_de8e0d9553586985: function(arg0, arg1, arg2) {
+            Uint8Array.prototype.set.call(getArrayU8FromWasm0(arg0, arg1), arg2);
         },
         __wbg_stack_3b0d974bbf31e44f: function(arg0, arg1) {
             const ret = arg1.stack;
@@ -87,6 +86,11 @@ function __wbg_get_imports() {
     };
 }
 
+function getArrayU8FromWasm0(ptr, len) {
+    ptr = ptr >>> 0;
+    return getUint8ArrayMemory0().subarray(ptr / 1, ptr / 1 + len);
+}
+
 let cachedDataViewMemory0 = null;
 function getDataViewMemory0() {
     if (cachedDataViewMemory0 === null || cachedDataViewMemory0.buffer.detached === true || (cachedDataViewMemory0.buffer.detached === undefined && cachedDataViewMemory0.buffer !== wasm.memory.buffer)) {
@@ -105,13 +109,6 @@ function getUint8ArrayMemory0() {
         cachedUint8ArrayMemory0 = new Uint8Array(wasm.memory.buffer);
     }
     return cachedUint8ArrayMemory0;
-}
-
-function passArray8ToWasm0(arg, malloc) {
-    const ptr = malloc(arg.length * 1, 1) >>> 0;
-    getUint8ArrayMemory0().set(arg, ptr / 1);
-    WASM_VECTOR_LEN = arg.length;
-    return ptr;
 }
 
 function passStringToWasm0(arg, malloc, realloc) {

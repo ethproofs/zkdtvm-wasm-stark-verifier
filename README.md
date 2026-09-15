@@ -11,22 +11,23 @@ This module provides WebAssembly bindings for the zkDTVM STARK verifier, enablin
 | zkdtvm           | v0.8.0  |
 | Verifier backend | [`zkdtvm-stark-verifier`](https://github.com/AntChainOpenLabs/zkdtvm-stark-verifier) `v0.8.0` tag |
 
-> **Breaking change in 0.3.0.** The verifier now accepts only the compact
-> **elided** proof form. A full proof that still carries the fixed L4
-> preprocessing opening is rejected, even when it is otherwise valid. Proofs
-> that verified under 0.2.0 in the non-elided form must be re-exported. See
-> [Byte format](#byte-format).
+> **Breaking change in 0.4.0.** The verifier now consumes **SealProof v6** bytes
+> and an **SDK application key (schema 1)**. Both inputs changed shape: the
+> application key is **2,440 bytes** (was 2,368) and proofs are exported as
+> `.seal` files. Proofs and keys that verified under 0.3.0 are rejected in every
+> combination and must be re-exported. See [Byte format](#byte-format).
+>
+> **`main()` is no longer slow.** 0.3.0 paid a one-time ~3.7 s L4 setup; the
+> v0.8.0 backend removes it. `main()` now returns in ~30 ms, the module shrank
+> from ~3.2 MB to ~2.1 MB, and warm verification runs in ~10 ms. See
+> [Performance](#performance).
 
-> **Breaking change in 0.2.0.** The verification key input is the **full**
-> bincode-serialized `DTVerifyingKey` (2368 bytes), not the 32-byte digest used
-> by 0.1.x. Native-recursion verification requires the complete key, so
-> digest-only input is rejected.
+> **Breaking change in 0.3.0.** The verifier accepted only the compact
+> **elided** proof form. Superseded by the 0.4.0 Seal format above.
 
-> **Performance.** 0.3.0 embeds the fixed L4 verifier and reuses it across
-> calls. The module shrank from ~15 MB to ~3.2 MB, and verification dropped from
-> tens of seconds to tens of milliseconds. `main()` now performs the one-time L4
-> setup (~3.7 s) and **throws** if that setup fails, so call it once per worker
-> and keep the module alive. See [Performance](#performance).
+> **Breaking change in 0.2.0.** The verification key input became the full
+> serialized key rather than the 32-byte digest used by 0.1.x. Digest-only input
+> is still rejected.
 
 ## Usage
 
@@ -42,14 +43,14 @@ npm install @ethproofs/zkdtvm-wasm-stark-verifier
 import init, { main, verify_stark } from '@ethproofs/zkdtvm-wasm-stark-verifier';
 
 await init(); // Load & compile WASM (if needed)
-main(); // One-time L4 setup (~3.7 s); throws if setup fails
+main(); // One-time verifier setup (~30 ms); throws if setup fails
 
-// Verify a proof — fast, and reuses the state main() built
+// Verify a proof — reuses the state main() built
 const isValid = verify_stark(proofBytes, vkBytes);
 ```
 
-Run this in a worker. `main()` is slow and blocking; `verify_stark` afterwards
-is not.
+`main()` is cheap now, but keep the module alive and call it once per worker:
+`verify_stark` reuses the runtime it installs.
 
 ### Node.js Usage
 
@@ -58,34 +59,41 @@ const { main, verify_stark } = require('@ethproofs/zkdtvm-wasm-stark-verifier');
 
 // The Node.js version loads the WASM module automatically
 
-main(); // One-time L4 setup (~3.7 s); throws if setup fails
+main(); // One-time verifier setup (~30 ms); throws if setup fails
 const result = verify_stark(proofBytes, vkBytes);
 ```
 
 ### Byte format
 
-- **`proof`** — `bincode::serialize(compressed_proof)`, a `DTReduceProof<RootSC>`,
-  in the **elided** form. The fixed L4 preprocessing opening is supplied by the
-  verifier, not the proof; a proof that still contains it is rejected.
-- **`vk`** — `bincode::serialize(vk)`, the full `DTVerifyingKey` struct (the
-  program/core VK). The fixed L4 machine, program and VK are embedded in the
-  WASM package and are not API inputs.
+- **`proof`** — zkDTVM **SealProof v6** bytes, as written to a `.seal` file.
+  EthProofs records carry these bytes Base64-encoded in the `proof` field.
+  Decode to a `Uint8Array` before calling; do not pass a receipt, proof hash or
+  VK digest.
+- **`vk`** — the complete **SDK application key** (schema 1) for the program
+  being verified, 2,440 bytes. Identified on EthProofs by `verifier_id`; use the
+  trusted key registered for that ID. The fixed Seal key is embedded in the WASM
+  package and is not an API input.
 
-Malformed bytes, a mismatched program VK, a mismatched fixed L4 VK, an invalid
-proof, and a non-elided proof all fail closed.
+Inputs are limited to **4 MiB** for the proof and **1 MiB** for the VK; oversize
+input is rejected before it is copied into WASM. Malformed bytes, a mismatched
+application key, a mismatched Seal key, and an invalid proof all fail closed with
+a `DTV_*` error rather than trapping the module, and the runtime stays usable for
+subsequent calls.
 
 ## Performance
 
-Measured on an M-series Mac against `fixtures/example_1` (254,530-byte proof,
-2,368-byte VK):
+Measured on an M-series Mac against `fixtures/example_1` (267,918-byte Seal
+proof for Ethereum block 25954917, 2,440-byte application key):
 
-| Runtime | One-time `main()` | Verify (first) | Verify (subsequent) |
-| ------- | ----------------- | -------------- | ------------------- |
-| Chrome (worker, `pkg-web/`) | ~3.7 s | ~47 ms | ~47 ms |
-| Node 20 (`pkg-node/`) | ~3.7 s | ~43 ms | ~13 ms |
+| Runtime | Load & compile | `main()` | Verify (first) | Verify (subsequent) |
+| ------- | -------------- | -------- | -------------- | ------------------- |
+| Chrome 151 (worker, `pkg-web/`) | ~11 ms | ~3 ms | ~10 ms | ~9 ms |
+| Node 20 (`pkg-node/`) | ~13 ms | ~29 ms | ~35 ms | ~11 ms |
 
-For comparison, 0.2.0 verified the same fixture in ~19 s under Chrome and
-~44.5 s under Node 20. The `.wasm` is ~3.2 MB (was ~15 MB), so cache it.
+For comparison, 0.3.0 required a ~3.7 s `main()` before the first verification,
+and 0.2.0 took ~19 s (Chrome) / ~44.5 s (Node) per verification. The `.wasm` is
+~2.1 MB (was ~3.2 MB), so cache it. Verification is now fast enough to run
+inline, but a worker still keeps the main thread free.
 
 ## Testing
 

@@ -120,7 +120,7 @@
   <div class="wrap">
     <header>
       <h1>dt-wasm-verifier</h1>
-      <p>Verify a compressed STARK proof in the browser via WASM. Choose a bundled fixture or upload your own files.</p>
+      <p>Verify a zkDTVM Seal proof in the browser via WASM. Choose a bundled fixture or upload your own files.</p>
     </header>
 
     <!-- Tab bar -->
@@ -146,15 +146,15 @@
       <div class="grid">
         <label class="drop" id="dzP">
           <strong>Proof</strong>
-          <span class="hint">Drop or choose <code>proof.bin</code></span>
+          <span class="hint">Drop or choose a <code>.seal</code> proof</span>
           <span class="meta" id="metaP"></span>
-          <input id="inpP" type="file" accept=".bin,application/octet-stream,*/*" />
+          <input id="inpP" type="file" accept=".bin,.seal,.application-key,application/octet-stream,*/*" />
         </label>
         <label class="drop" id="dzV">
-          <strong>Verification key</strong>
-          <span class="hint">Drop or choose <code>vk.bin</code></span>
+          <strong>Application key</strong>
+          <span class="hint">Drop or choose <code>vk.bin</code> or an <code>.application-key</code> file</span>
           <span class="meta" id="metaV"></span>
-          <input id="inpV" type="file" accept=".bin,application/octet-stream,*/*" />
+          <input id="inpV" type="file" accept=".bin,.seal,.application-key,application/octet-stream,*/*" />
         </label>
       </div>
       <div class="actions">
@@ -266,7 +266,11 @@
     }
     function showFail(el, title, detail) {
       el.className = 'result visible fail';
-      el.innerHTML = `<div class="row"><span class="label">${title}</span></div><div class="msg">${detail ? String(detail) : ''}</div>`;
+      // Set as text, not markup: titles and details carry file names and
+      // verifier error strings derived from untrusted input.
+      el.innerHTML = '<div class="row"><span class="label"></span></div><div class="msg"></div>';
+      el.querySelector('.label').textContent = title;
+      el.querySelector('.msg').textContent = detail ? String(detail) : '';
     }
 
     /* ---- verify dispatch ---- */
@@ -338,7 +342,20 @@
       metaV.textContent = uploadVk ? `${uploadVk.name} · ${fmtBytes(uploadVk.size)}` : '';
     }
 
+    /* Same caps the verifier enforces at the ABI boundary. */
+    const MAX_PROOF_BYTES = 4 * 1024 * 1024;
+    const MAX_VK_BYTES = 1024 * 1024;
+
     async function handleFile(file, which) {
+      const limit = which === 'p' ? MAX_PROOF_BYTES : MAX_VK_BYTES;
+      if (file.size > limit) {
+        if (which === 'p') uploadProof = null; else uploadVk = null;
+        syncUploadBtn();
+        showFail(rUpload, 'File too large',
+          `Maximum ${which === 'p' ? 'proof' : 'application key'} size is ${fmtBytes(limit)}; ` +
+          `${file.name} is ${fmtBytes(file.size)}.`);
+        return;
+      }
       const bytes = new Uint8Array(await file.arrayBuffer());
       const entry = { name: file.name, size: file.size, bytes };
       if (which === 'p') uploadProof = entry; else uploadVk = entry;

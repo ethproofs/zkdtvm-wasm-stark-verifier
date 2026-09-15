@@ -1,7 +1,7 @@
 [
   {
     "name": "example_1",
-    "description": "Compressed STARK proof (valid)",
+    "description": "zkDTVM Seal proof v6 for Ethereum block 25954917 (valid)",
     "proof": "/fixtures/example_1/proof.bin",
     "vk": "/fixtures/example_1/vk.bin"
   }

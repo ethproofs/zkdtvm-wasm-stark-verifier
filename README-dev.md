@@ -1,16 +1,16 @@
 # dt-wasm-verifier
 
-Pre-built WASM verifier for **compressed zkDTVM proofs**. No Rust toolchain required — just Node.js.
+Pre-built WASM verifier for **zkDTVM Seal proofs**. No Rust toolchain required — just Node.js.
 
 Built against **zkdtvm v0.8.0** / [`zkdtvm-stark-verifier`](https://github.com/AntChainOpenLabs/zkdtvm-stark-verifier) `v0.8.0` tag,
-which currently resolves to commit `6bb8a737bdc5473332b980820921c090211069c7`.
+which currently resolves to commit `e02a91464d94a5d1d5d3123003ddd2f86b54eeb8`.
 
-> **The `v0.8.0` tag is mutable and has already moved once.** It previously
-> resolved to `c5da37f5d187616c9ffe445e2e29e1f4d21c612d`; upstream retagged it
-> to `6bb8a73` to ship the reusable elided L4 verifier. `main`'s `Cargo.toml`
-> selects the backend by tag, so only `Cargo.lock` pins the exact commit —
-> always build with the committed lock, and re-verify fixtures after any
-> `cargo update`.
+> **The `v0.8.0` tag is mutable and has moved twice.** It previously resolved to
+> `c5da37f5d187616c9ffe445e2e29e1f4d21c612d`, then to `6bb8a737bdc5473332b980820921c090211069c7`
+> (the reusable elided L4 verifier), and now to `e02a9146` (the Seal proof API).
+> `main`'s `Cargo.toml` selects the backend by tag, so only `Cargo.lock` pins the
+> exact commit — always build with the committed lock, and re-verify fixtures
+> after any `cargo update`.
 
 ---
 
@@ -29,8 +29,8 @@ await init();
 initVerifierRuntime();
 
 // 2. Verify
-const proof = new Uint8Array(/* compressed_proof.bin bytes */);
-const vk    = new Uint8Array(/* compressed_vk.bin bytes */);
+const proof = new Uint8Array(/* block_NNNNN.seal bytes */);
+const vk    = new Uint8Array(/* application key bytes */);
 
 try {
   verifyCompressedBytes(proof, vk);   // no exception = PASS
@@ -48,8 +48,8 @@ import { initVerifierRuntime, verifyCompressedBytes }
 
 initVerifierRuntime();
 
-const proof = fs.readFileSync('compressed_proof.bin');
-const vk    = fs.readFileSync('compressed_vk.bin');
+const proof = fs.readFileSync('block_25954917.seal');
+const vk    = fs.readFileSync('vk.bin');
 
 verifyCompressedBytes(proof, vk);  // throws on failure
 ```
@@ -59,23 +59,31 @@ verifyCompressedBytes(proof, vk);  // throws on failure
 | Function | Signature | Description |
 |----------|-----------|-------------|
 | `init()` | `() → Promise<void>` | Load & compile WASM. **Browser only** (Node auto-loads). |
-| `initVerifierRuntime()` | `() → void` | Install panic hook **and run the one-time L4 setup (~3.7 s)**. Call once per worker before verifying. **Throws** if setup fails. |
+| `initVerifierRuntime()` | `() → void` | Install panic hook and initialize the verifier for reuse (~30 ms). Call once per worker before verifying. **Throws** if setup fails. |
 | `verifyCompressedBytes(proof, vk)` | `(Uint8Array, Uint8Array) → void` | Verify proof. **Throws** on failure. |
 | `verifyCompressedOk(proof, vk)` | `(Uint8Array, Uint8Array) → boolean` | Verify proof. Returns `true` if valid, `false` otherwise. |
 
+Inputs are capped at **4 MiB** (proof) and **1 MiB** (VK). The limit is enforced
+at the ABI boundary before either buffer is copied into WASM, so oversize input
+is cheap to reject. Every rejection is a `DTV_*` error, never a WASM trap, and
+the runtime remains usable afterwards.
+
 ### Byte format
 
-- **`compressed_proof.bin`** — `bincode::serialize(compressed_proof)`, a `DTReduceProof<RootSC>`, in the **elided** form.
-- **`compressed_vk.bin`** — `bincode::serialize(vk)`, the **full `DTVerifyingKey` struct** (the program/core VK).
+- **`proof`** — zkDTVM **SealProof v6** bytes, as written to a `.seal` file.
+- **`vk`** — the complete **SDK application key** (schema 1), 2,440 bytes.
 
-> **Changed in the retagged v0.8.0 backend.** The verifier now accepts only the
-> compact **elided** proof form. The fixed L4 machine, program and VK are
-> embedded in the WASM package and are no longer API inputs; a proof that still
-> carries the L4 preprocessing opening is rejected even when otherwise valid.
+> **Changed in the current v0.8.0 backend.** The API takes Seal proof bytes and
+> an SDK application key. The fixed Seal key is embedded in the WASM package and
+> is not an API input. Inputs cross the ABI as `js_sys::Uint8Array` rather than
+> `&[u8]` so lengths can be validated before copying.
 
-> **Changed in v0.8.0.** Earlier releases (v0.6.x) took the 32-byte VK **digest**
-> here. v0.8.0 requires the complete key — native-recursion verification cannot
-> run from the digest alone, and digest-only input is rejected.
+> **Changed earlier in v0.8.0.** The previous backend took an *elided*
+> `DTReduceProof<RootSC>` plus a 2,368-byte `DTVerifyingKey`. Those inputs are
+> rejected by the current build; re-export proofs in the Seal format.
+
+> **Changed in v0.8.0.** Releases before v0.8.0 (v0.6.x) took the 32-byte VK
+> **digest**. Digest-only input is rejected.
 
 ---
 
@@ -93,31 +101,30 @@ Output:
 Running 1 fixture(s):
 
 [example_1]
-  proof fixtures/example_1/proof.bin (254530 bytes)
-  vk    fixtures/example_1/vk.bin (2368 bytes)
-  OK 42.96 ms
+  proof fixtures/example_1/proof.bin (267918 bytes)
+  vk    fixtures/example_1/vk.bin (2440 bytes)
+  OK 34.79 ms
 
+Done: 1 passed, 0 failed
 ```
 
-> **The cost moved from verify to init.** The retagged v0.8.0 backend embeds the
-> fixed L4 verifier and reuses it, so `initVerifierRuntime()` pays a one-time
-> setup and each verification is cheap. Measured on an M-series Mac with this
-> fixture:
+> **The one-time init cost is gone.** The v0.8.0 Seal backend no longer builds a
+> fixed L4 verifier at startup, so `initVerifierRuntime()` is now milliseconds
+> rather than seconds. Measured on an M-series Mac with this fixture:
 >
-> | Runtime | One-time init | Verify (first) | Verify (subsequent) |
-> | ------- | ------------- | -------------- | ------------------- |
-> | Chrome (worker, `pkg-web/`) | ~3.7 s | ~47 ms | ~47 ms |
-> | Node 20 (`pkg-node/`) | ~3.7 s | ~43 ms | ~13 ms |
+> | Runtime | Load & compile | `initVerifierRuntime()` | Verify (first) | Verify (subsequent) |
+> | ------- | -------------- | ----------------------- | -------------- | ------------------- |
+> | Chrome 151 (worker, `pkg-web/`) | ~11 ms | ~3 ms | ~10 ms | ~9 ms |
+> | Node 20 (`pkg-node/`) | ~13 ms | ~29 ms | ~35 ms | ~11 ms |
 >
-> The previous build verified this fixture in ~19.3 s (Chrome) / ~44.5 s
-> (Node 20). In the browser, still run this inside a worker (as `demo/` does):
-> the per-call cost is now small, but `initVerifierRuntime()` blocks for
-> seconds. The `.wasm` shrank from ~15 MB to ~3.2 MB; keep caching it.
+> The previous build paid ~3.7 s in init before the first verification. The
+> `.wasm` shrank from ~3.2 MB to ~2.1 MB; keep caching it. The browser demo still
+> verifies inside a worker (as `demo/` does) to keep the main thread free.
 
 Or verify a specific proof/vk pair:
 
 ```bash
-node verify-node.mjs /path/to/compressed_proof.bin /path/to/compressed_vk.bin
+node verify-node.mjs /path/to/proof.seal /path/to/vk.bin
 ```
 
 ---
@@ -131,11 +138,22 @@ npm run demo
 Open **http://127.0.0.1:8788/**. Two modes:
 
 - **Fixtures tab** — select any fixture from `fixtures/index.json`, click Verify.
-- **Upload tab** — drag & drop your own `compressed_proof.bin` and `compressed_vk.bin`.
+- **Upload tab** — drag & drop your own `.seal` proof and application key.
 
 ---
 
-## Adding fixtures
+## Fixtures
+
+`fixtures/example_1/` is the upstream sample for Ethereum block 25954917.
+`fixtures/example_1/source.json` records its provenance — source revision,
+prover image, `program_identity`, `verifier_id` and SHA-256 checksums for each
+file. Verify the fixture bytes against it after any refresh:
+
+```bash
+shasum -a 256 fixtures/example_1/proof.bin fixtures/example_1/vk.bin
+```
+
+### Adding fixtures
 
 1. Create a folder under `fixtures/<name>/` with `proof.bin` and `vk.bin`.
 2. Add an entry to `fixtures/index.json`:
@@ -161,7 +179,7 @@ Both the demo page and `npm run verify:node` will automatically pick up the new 
 ├── pkg-node/             # WASM package for Node.js
 ├── fixtures/             # Sample proof & VK files
 │   ├── index.json        # Fixture manifest (auto-discovered)
-│   └── example_1/        # Sample compressed STARK proof (valid)
+│   └── example_1/        # Sample Seal proof (valid) + source.json provenance
 ├── demo/                 # Browser demo UI
 ├── serve.mjs             # Local HTTP server for the demo
 ├── verify-node.mjs       # Node.js smoke test (runs all fixtures)
@@ -186,3 +204,11 @@ Requires the `wasm32-unknown-unknown` Rust target, `wasm-pack`, and network
 access to the public `zkdtvm-stark-verifier` repository. Then copy the three
 `pkg*/` directories onto this branch and re-apply the
 `zkdtvm_wasm_stark_verifier.*` wrapper files and `package.json` metadata.
+
+`main` ships pre-built `pkg-web/` and `pkg-node/` artifacts; `pkg/` (bundler) is
+not committed upstream and must be built. The `_bg.wasm` is identical across all
+three wasm-pack targets, so the bundler package can reuse the upstream binary
+with locally generated `dt_wasm_verifier_bg.js` glue. Builds are not
+bit-reproducible across toolchain versions — prefer the upstream-committed
+`.wasm` for releases and confirm the generated glue matches upstream byte for
+byte.
